@@ -35,12 +35,9 @@ findInverse <- function(x, y, y0) {
 #' # Plot knee points calculated using two different methods
 #' points(findCutoff(x,y), col="red", pch=20, cex=3)
 #' points(findCutoff(x,y, method="curvature"), col="blue", pch=20, cex=3)
-#' @importFrom stats approx cor
+#' @importFrom stats approx cor median
 #' @export
 findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
-  if (min(length(x), length(y)) < 5) {
-    stop("Should have at least 5 points for a knee curve.")
-  }
   # Test for non-numeric or infinite values
   is.invalid <- function(x) {
     any((!is.numeric(x)) | is.infinite(x))
@@ -58,14 +55,24 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
 
   # Use Savitzky-Golay filter to get derivatives
   smoothen <- function(y, ...) {
-    # Set filter length to be fraction of length of data
-    # (must be an odd number)
-    filt.length <- ceiling(length(new.x) / 3) -
-      (ceiling(length(new.x) / 3) %% 2 + 1)
     # Time scaling factor so that the derivatives are on same scale as original data
     ts <- (max(new.x) - min(new.x)) / length(new.x)
-    #filt.length <- 5
-    signal::sgolayfilt(y, p=4, n=filt.length, ts=ts, ...)
+    p <- 3 # Degree of polynomial to estimate curve
+    # Set filter length to be fraction of length of data
+    # (must be an odd number)
+    largest.odd.num.lte <- function(x) {
+      x.int <- floor(x)
+      if (x.int %% 2 == 0) {
+        x.int - 1
+      } else {
+        x.int
+      }
+    }
+    filt.length <- min(largest.odd.num.lte(length(new.x)), 17)
+    if (filt.length <= p) {
+      stop("Need more points to find cutoff.")
+    }
+    signal::sgolayfilt(y, p=p, n=filt.length, ts=ts, ...)
   }
 
   # Calculate first and second derivatives
@@ -73,13 +80,26 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
   first.deriv <- smoothen(new.y, m=1)
   second.deriv <- smoothen(new.y, m=2)
 
-  # Check that first derivative is decreasing
-  if (cor(first.deriv, 1:length(first.deriv), method="kendall") >= 0) {
-    stop("First derivative should be decreasing for a knee curve.")
+  # Check the signs of the 2 derivatives to see whether to flip the curve
+  first.deriv.sign <- sign(median(first.deriv))
+  second.deriv.sign <- sign(median(second.deriv))
+  # The signs for which to flip the x and y axes
+  x.sign <- 1
+  y.sign <- 1
+  if ((first.deriv.sign == -1) && (second.deriv.sign == -1)) {
+    x.sign <- -1
+  } else if ((first.deriv.sign == -1) && (second.deriv.sign == 1)) {
+    y.sign <- -1
+  } else if ((first.deriv.sign == 1) && (second.deriv.sign == 1)) {
+    x.sign <- -1
+    y.sign <- -1
   }
-  # Check that second derivative is increasing
-  if (cor(second.deriv, 1:length(second.deriv), method="kendall") < 0) {
-    stop("Second derivative should be increasing for a knee curve.")
+  # If curve needs flipping, then run same routine on flipped curve then
+  # flip the results back
+  if ((x.sign == -1) || (y.sign == -1)) {
+    results <- findCutoff(x.sign * x, y.sign * y,
+               method=method, frac.of.max.slope=frac.of.max.slope)
+    return(list(x = x.sign * results$x, y = y.sign * results$y))
   }
 
   # Find cutoff point for x depending on method
@@ -98,16 +118,12 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
   } else if (method == "curvature") {
     # Find x where curvature is maximum
     curvature <- abs(second.deriv) / (1 + first.deriv^2)^(3/2)
-    #cutoff.x <- approx(curvature, new.x, max(curvature))$y
     cutoff.x <- findInverse(new.x, curvature, max(curvature))
   } else {
     stop("Method must be either 'first' or 'curvature'.")
   }
-  #if (cutoff.x > max(x)) {
-  #  warning("Cutoff point is outside range of x. y value will be returned as NA.")
-  #}
   if (is.na(cutoff.x)) {
-    warning("Not enough points to determine cutoff. Returning NA.")
+    warning("Cutoff point is beyond range. Returning NA.")
     list(x=NA, y=NA)
   } else {
     # Return cutoff point on curve
