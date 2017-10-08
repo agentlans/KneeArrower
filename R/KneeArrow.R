@@ -1,3 +1,22 @@
+#' Finds value of x whose y value is y0
+#'
+#' @param x x coordinates
+#' @param y y coordinates
+#' @param y0 value for y for which we want corresponding x value
+#' @return value of the x coordinate whose y value is close to y0
+#' @importFrom stats approxfun optimize
+findInverse <- function(x, y, y0) {
+  if (y0 < min(y) | max(y) < y0) {
+    warning("y value is outside the range of function. x coordinate may not exist. Returning NA.")
+    return(NA)
+  } else {
+    # Interpolation function
+    f <- approxfun(x, y, rule=1)
+    # Minimize |f(x) - y0| over range of x
+    return(optimize( function(x) abs(f(x) - y0), range(x))$minimum)
+  }
+}
+
 #' Finds cutoff point on knee curve
 #'
 #' @param x vector of x coordinates of points around curve
@@ -74,18 +93,25 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
     }
     # Find x where first derivative reaches cutoff
     slope.cutoff <- frac.of.max.slope * max(first.deriv)
-    cutoff.x <- approx(first.deriv, new.x, slope.cutoff)$y
+    #cutoff.x <- approx(first.deriv, new.x, slope.cutoff)$y
+    cutoff.x <- findInverse(new.x, first.deriv, slope.cutoff)
   } else if (method == "curvature") {
     # Find x where curvature is maximum
     curvature <- abs(second.deriv) / (1 + first.deriv^2)^(3/2)
-    cutoff.x <- approx(curvature, new.x, max(curvature))$y
+    #cutoff.x <- approx(curvature, new.x, max(curvature))$y
+    cutoff.x <- findInverse(new.x, curvature, max(curvature))
   } else {
     stop("Method must be either 'first' or 'curvature'.")
   }
-  if (cutoff.x > max(x)) {
-    warning("Cutoff point is outside range of x. y value will be returned as NA.")
+  #if (cutoff.x > max(x)) {
+  #  warning("Cutoff point is outside range of x. y value will be returned as NA.")
+  #}
+  if (is.na(cutoff.x)) {
+    warning("Not enough points to determine cutoff. Returning NA.")
+    list(x=NA, y=NA)
+  } else {
+    # Return cutoff point on curve
+    approx(new.x, zero.deriv, cutoff.x)
   }
-  # Return cutoff point on curve
-  approx(new.x, zero.deriv, cutoff.x)
 }
 

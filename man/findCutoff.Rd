@@ -14,9 +14,8 @@ findCutoff(x, y, method = "first", frac.of.max.slope = 0.5)
 \item{method}{the method to define the knee point.
 Value can be "first" for first derivative cutoff or "curvature" for maximum curvature cutoff.}
 
-\item{frac.of.max.slope}{only used if method is set to "first".
-The cutoff value for the first derivative relative to the maximum slope.
-Can be set to any number between 0 to 1. Lower numbers will lead to higher knee points.
+\item{frac.of.max.slope}{cutoff value for the first derivative relative to the maximum slope.
+Only used if method is set to "first". Can be set to any number > 0 or <= 1. Lower numbers will lead to higher knee points.
 Higher numbers will lead to lower knee points.}
 }
 \value{

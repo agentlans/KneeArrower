@@ -11,13 +11,19 @@ close_enough <- function(list1, list2) {
   x.diff <= 0.1
 }
 
+test_that("Inverse function works", {
+  # Estimate the square roots of 0 and 3
+  expect_lt(abs(findInverse(seq(0, 5, 0.1), (seq(0, 5, 0.1))^2, 0)), 2E-2)
+  expect_lt(abs(findInverse(seq(0, 5, 0.1), (seq(0, 5, 0.1))^2, 3) - sqrt(3)), 2E-2)
+})
+
 test_that("First derivative method works", {
-  expect_equal(close_enough(findCutoff(x, y, method="first", 1), list(x=0, y=0)), TRUE)
-  expect_equal(close_enough(findCutoff(x, y, method="first", 0.5), list(x=1, y=log(2))), TRUE)
+  expect_true(close_enough(findCutoff(x, y, method="first", 1), list(x=0, y=0)))
+  expect_true(close_enough(findCutoff(x, y, method="first", 0.5), list(x=1, y=log(2))))
 })
 
 test_that("Curvature method works", {
-  expect_equal(close_enough(findCutoff(x, y, method="curvature"), list(x=0, y=0)), TRUE)
+  expect_true(close_enough(findCutoff(x, y, method="curvature"), list(x=0, y=0)))
 })
 
 

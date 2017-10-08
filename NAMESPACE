@@ -2,4 +2,6 @@
 
 export(findCutoff)
 importFrom(stats,approx)
+importFrom(stats,approxfun)
 importFrom(stats,cor)
+importFrom(stats,optimize)
