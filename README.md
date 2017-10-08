@@ -26,18 +26,36 @@ findCutoff(x, y)
 # For more information on the options, view the help file for findCutoff
 ?findCutoff
 ```
-## Troubleshooting
+## Troubleshooting and Frequently Asked Questions
 
-- **Why doesn't the output look like a knee point?**
+- **Why doesn't the output point look like a knee point?**
 
 Try plotting x and y coordinates on the same scale.
-Also, if you're using the first derivative cutoff method (default), you can adjust the slope to get a higher or lower point on the curve. Please see vignettes for details.
+
+Also, if you're using the first derivative cutoff method (default), you can adjust the slope to get a higher or lower point on the curve. Please see the vignettes for details.
+
+- **The output point doesn't match the knee point I found using calculus!**
+
+The knee points given by the package are only approximate because the derivatives have to be estimated at every point from the data. However, the output should be very close to the actual point.
+
+- **What happens if there's more than one knee point?**
+
+The package arbitrarily returns one of the knee points. The others won't appear in the output.
+
+- **Any tips for best results?**
+
+The package should work best on input data with these characteristics:
+    - many points
+    - low noise
+    - evenly spaced x coordinates
+    - gentle changes in slope
+    - expected knee point near the centre of the range of x
 
 - **How come I can't install vignettes?**
 
 `devtools` install doesn't install vignettes by default.
 You may install vignettes by cloning this repository and building the package offline.
-Note: other packages may need to be installed first.
+Note: other packages may need to be installed first in order to build the vignettes.
 
 ## Author
 Alan Tseng
