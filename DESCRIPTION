@@ -1,0 +1,17 @@
+Package: KneeArrower
+Type: Package
+Title: Finds Cutoff Points on Knee Curves
+Version: 0.1.0
+Author: Alan Tseng
+Maintainer: Alan Tseng <alan.tseng@utoronto.ca>
+Description: Given a set of points around a knee curve,
+    analyzes first and second derivatives to find knee points.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports: signal
+RoxygenNote: 6.0.1
+Suggests: testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
