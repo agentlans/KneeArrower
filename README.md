@@ -44,7 +44,7 @@ The package arbitrarily returns one of the knee points. The others won't appear 
 
 - **Any tips for best results?**
 
-The package should work best on input data with these characteristics:
+  - The package should work best on input data with these characteristics:
     - many points
     - low noise
     - evenly spaced x coordinates
