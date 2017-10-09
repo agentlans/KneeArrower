@@ -22,14 +22,14 @@ test_that("First derivative method works", {
   expect_true(close_enough(findCutoff(x, y, method="first", 0.5), list(x=1, y=log(2))))
 })
 
-#test_that("Curvature method works", {
-  #expect_true(close_enough(findCutoff(x, y, method="curvature"), list(x=0, y=0)))
-#})
+test_that("Curvature method works", {
+  expect_true(close_enough(findCutoff(x, y, method="curvature"), list(x=0, y=0)))
+})
 
 x <- seq(-0.7, 3, 0.05)
 y <- log(1+x)
 
-test_that("Curvature method works on another part of curve", {
+test_that("Curvature method works on another part of the curve", {
   expect_true(close_enough(findCutoff(x, y, method="curvature"), list(x=1/sqrt(2)-1, y=log(1/sqrt(2)))))
 })
 
