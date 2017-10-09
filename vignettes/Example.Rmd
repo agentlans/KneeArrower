@@ -12,6 +12,7 @@ vignette: >
 # Input data
 First we need to load the package and load the coordinates of points that define a knee curve.
 Here is a randomly-generated example of a knee curve:
+
 ```{r}
 library(KneeArrower)
 
@@ -21,7 +22,7 @@ y <- -exp(-x) * (1+rnorm(50) * 0.08) * 3
 plot(x, y, pch=20, col="gray")
 ```
 
-Note that in order for KneeArrower to find cutoff points, the curve must be oriented so that it is increasing and concave down.
+Knee curves can be either increasing or decreasing, concave up or concave down.
 
 # Finding cutoff points
 Use the `findCutoff` function to find cutoff points on the curve using the first derivative cutoff method or
