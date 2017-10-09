@@ -53,22 +53,26 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
   new.x <- seq(from=min(x), to=max(x), length.out=length(x))
   new.y <- approx(x, y, new.x)$y
 
+  # Finds largest odd number below given number
+  largest.odd.num.lte <- function(x) {
+    x.int <- floor(x)
+    if (x.int %% 2 == 0) {
+      x.int - 1
+    } else {
+      x.int
+    }
+  }
+
   # Use Savitzky-Golay filter to get derivatives
-  smoothen <- function(y, ...) {
+  smoothen <- function(y, p=p, filt.length=NULL, ...) {
     # Time scaling factor so that the derivatives are on same scale as original data
     ts <- (max(new.x) - min(new.x)) / length(new.x)
     p <- 3 # Degree of polynomial to estimate curve
     # Set filter length to be fraction of length of data
     # (must be an odd number)
-    largest.odd.num.lte <- function(x) {
-      x.int <- floor(x)
-      if (x.int %% 2 == 0) {
-        x.int - 1
-      } else {
-        x.int
-      }
+    if (is.null(filt.length)) {
+      filt.length <- min(largest.odd.num.lte(length(new.x)), 17)
     }
-    filt.length <- min(largest.odd.num.lte(length(new.x)), 17)
     if (filt.length <= p) {
       stop("Need more points to find cutoff.")
     }
@@ -77,8 +81,12 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
 
   # Calculate first and second derivatives
   zero.deriv <- smoothen(new.y, m=0)
-  first.deriv <- smoothen(new.y, m=1)
-  second.deriv <- smoothen(new.y, m=2)
+  # Reason for calling smoothen twice is to make sure 1st and 2nd derivatives are smooth
+  # if original data has noise
+  first.deriv <- smoothen(smoothen(new.y, m=1), p=1,
+                          filt.length=min(7, largest.odd.num.lte(length(new.x))))
+  second.deriv <- smoothen(smoothen(new.y, m=2), p=1,
+                           filt.length=min(7, largest.odd.num.lte(length(new.x))))
 
   # Check the signs of the 2 derivatives to see whether to flip the curve
   first.deriv.sign <- sign(median(first.deriv))

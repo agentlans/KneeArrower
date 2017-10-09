@@ -5,10 +5,10 @@ y <- log(1+x)
 
 # Tests whether the x values are close enough
 # Can't get exact value because of numeric differentiation on discrete data
-# (should be 2 times the difference between successive x)
+# (should be less than the difference between successive x)
 close_enough <- function(list1, list2) {
   x.diff <- abs(list1$x - list2$x)
-  x.diff <= 0.1
+  x.diff <= 0.05
 }
 
 test_that("Inverse function works", {
