@@ -4,7 +4,7 @@
 \alias{findCutoff}
 \title{Finds cutoff point on knee curve}
 \usage{
-findCutoff(x, y, method = "first", frac.of.max.slope = 0.5)
+findCutoff(x, y, method = "first", frac.of.steepest.slope = 0.5)
 }
 \arguments{
 \item{x}{vector of x coordinates of points around curve}
@@ -14,9 +14,9 @@ findCutoff(x, y, method = "first", frac.of.max.slope = 0.5)
 \item{method}{the method to define the knee point.
 Value can be "first" for first derivative cutoff or "curvature" for maximum curvature cutoff.}
 
-\item{frac.of.max.slope}{cutoff value for the first derivative relative to the maximum slope.
-Only used if method is set to "first". Can be set to any number > 0 or <= 1. Lower numbers will lead to higher knee points.
-Higher numbers will lead to lower knee points.}
+\item{frac.of.steepest.slope}{the slope at the cutoff point relative to the steepest (positive or negative) slope on the curve.
+Only used if method is set to "first". Can be set to any number > 0 or <= 1. If the knee curve is increasing and concave down,
+then lower numbers will lead to higher knee points, and higher numbers will lead to lower knee points.}
 }
 \value{
 a list containing the (x, y) coordinates of the knee point chosen using the specified method

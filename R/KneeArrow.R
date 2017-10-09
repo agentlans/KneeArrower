@@ -23,9 +23,9 @@ findInverse <- function(x, y, y0) {
 #' @param y vector of y coordinates of points around curve
 #' @param method the method to define the knee point.
 #'    Value can be "first" for first derivative cutoff or "curvature" for maximum curvature cutoff.
-#' @param frac.of.max.slope cutoff value for the first derivative relative to the maximum slope.
-#'    Only used if method is set to "first". Can be set to any number > 0 or <= 1. Lower numbers will lead to higher knee points.
-#'    Higher numbers will lead to lower knee points.
+#' @param frac.of.steepest.slope the slope at the cutoff point relative to the steepest (positive or negative) slope on the curve.
+#'    Only used if method is set to "first". Can be set to any number > 0 or <= 1. If the knee curve is increasing and concave down,
+#'    then lower numbers will lead to higher knee points, and higher numbers will lead to lower knee points.
 #' @return a list containing the (x, y) coordinates of the knee point chosen using the specified method
 #' @examples
 #' # Generate some knee data
@@ -37,7 +37,7 @@ findInverse <- function(x, y, y0) {
 #' points(findCutoff(x,y, method="curvature"), col="blue", pch=20, cex=3)
 #' @importFrom stats approx cor median predict smooth.spline
 #' @export
-findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
+findCutoff <- function(x, y, method="first", frac.of.steepest.slope=0.5) {
   # Test for non-numeric or infinite values
   is.invalid <- function(x) {
     any((!is.numeric(x)) | is.infinite(x))
@@ -86,8 +86,13 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
   second.deriv <- smoothen(new.y, m=2)
 
   # Check the signs of the 2 derivatives to see whether to flip the curve
-  first.deriv.sign <- sign(median(first.deriv))
-  second.deriv.sign <- sign(median(second.deriv))
+  # (Pick sign of the most extreme observation)
+  pick.sign <- function(x) {
+    most.extreme <- which(abs(x) == max(abs(x), na.rm=TRUE))[1]
+    sign(x[most.extreme])
+  }
+  first.deriv.sign <- pick.sign(first.deriv)
+  second.deriv.sign <- pick.sign(second.deriv)
 
   # The signs for which to flip the x and y axes
   x.sign <- 1
@@ -104,21 +109,21 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
   # flip the results back
   if ((x.sign == -1) || (y.sign == -1)) {
     results <- findCutoff(x.sign * x, y.sign * y,
-               method=method, frac.of.max.slope=frac.of.max.slope)
+               method=method, frac.of.steepest.slope=frac.of.steepest.slope)
     return(list(x = x.sign * results$x, y = y.sign * results$y))
   }
 
   # Find cutoff point for x depending on method
   cutoff.x <- NA
   if (method == "first") {
-    if (is.invalid(frac.of.max.slope)) {
+    if (is.invalid(frac.of.steepest.slope)) {
       stop("Need to specify fraction of maximum slope.")
     }
-    if (frac.of.max.slope <= 0 || frac.of.max.slope > 1) {
+    if (frac.of.steepest.slope <= 0 || frac.of.steepest.slope > 1) {
       stop("Fraction of maximum slope must be positive and be less than or equal to 1.")
     }
     # Find x where first derivative reaches cutoff
-    slope.cutoff <- frac.of.max.slope * max(first.deriv)
+    slope.cutoff <- frac.of.steepest.slope * max(first.deriv)
     cutoff.x <- findInverse(new.x, first.deriv, slope.cutoff)
   } else if (method == "curvature") {
     # Find x where curvature is maximum

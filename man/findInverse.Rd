@@ -14,7 +14,8 @@ findInverse(x, y, y0)
 \item{y0}{value for y for which we want corresponding x value}
 }
 \value{
-value of the x coordinate whose y value is close to y0
+value of the x coordinate whose y value is y0.
+    If such x isn't in the domain of the function, then this function will return NA.
 }
 \description{
 Finds value of x whose y value is y0
