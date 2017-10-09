@@ -42,15 +42,6 @@ The knee points given by the package are only approximate because the derivative
 
 The package arbitrarily returns one of the knee points. The others won't appear in the output.
 
-- **Any tips for best results?**
-
-  - The package should work best on input data with these characteristics:
-    - many points
-    - low noise
-    - evenly spaced x coordinates
-    - gentle changes in slope
-    - expected knee point near the centre of the range of x
-
 - **How come I can't install vignettes?**
 
 `devtools` install doesn't install vignettes by default.
