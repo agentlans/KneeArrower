@@ -3,11 +3,11 @@
 #' @param x x coordinates
 #' @param y y coordinates
 #' @param y0 value for y for which we want corresponding x value
-#' @return value of the x coordinate whose y value is close to y0
+#' @return value of the x coordinate whose y value is y0.
+#'     If such x isn't in the domain of the function, then this function will return NA.
 #' @importFrom stats approxfun optimize
 findInverse <- function(x, y, y0) {
   if (y0 < min(y) | max(y) < y0) {
-    warning("y value is outside the range of function. x coordinate may not exist. Returning NA.")
     return(NA)
   } else {
     # Interpolation function
@@ -119,7 +119,6 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
     }
     # Find x where first derivative reaches cutoff
     slope.cutoff <- frac.of.max.slope * max(first.deriv)
-    #cutoff.x <- approx(first.deriv, new.x, slope.cutoff)$y
     cutoff.x <- findInverse(new.x, first.deriv, slope.cutoff)
   } else if (method == "curvature") {
     # Find x where curvature is maximum
