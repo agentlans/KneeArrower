@@ -35,7 +35,7 @@ findInverse <- function(x, y, y0) {
 #' # Plot knee points calculated using two different methods
 #' points(findCutoff(x,y), col="red", pch=20, cex=3)
 #' points(findCutoff(x,y, method="curvature"), col="blue", pch=20, cex=3)
-#' @importFrom stats approx cor median
+#' @importFrom stats approx cor median predict smooth.spline
 #' @export
 findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
   # Test for non-numeric or infinite values
@@ -51,7 +51,9 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
 
   # Get value of curve at equally-spaced points
   new.x <- seq(from=min(x), to=max(x), length.out=length(x))
-  new.y <- approx(x, y, new.x)$y
+  # Use a spline which automatically smooths out noise
+  sp <- smooth.spline(x, y)
+  new.y <- predict(sp, new.x)$y
 
   # Finds largest odd number below given number
   largest.odd.num.lte <- function(x) {
@@ -71,7 +73,7 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
     # Set filter length to be fraction of length of data
     # (must be an odd number)
     if (is.null(filt.length)) {
-      filt.length <- min(largest.odd.num.lte(length(new.x)), 17)
+      filt.length <- min(largest.odd.num.lte(length(new.x)), 7)
     }
     if (filt.length <= p) {
       stop("Need more points to find cutoff.")
@@ -80,17 +82,13 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
   }
 
   # Calculate first and second derivatives
-  zero.deriv <- smoothen(new.y, m=0)
-  # Reason for calling smoothen twice is to make sure 1st and 2nd derivatives are smooth
-  # if original data has noise
-  first.deriv <- smoothen(smoothen(new.y, m=1), p=1,
-                          filt.length=min(7, largest.odd.num.lte(length(new.x))))
-  second.deriv <- smoothen(smoothen(new.y, m=2), p=1,
-                           filt.length=min(7, largest.odd.num.lte(length(new.x))))
+  first.deriv <- smoothen(new.y, m=1)
+  second.deriv <- smoothen(new.y, m=2)
 
   # Check the signs of the 2 derivatives to see whether to flip the curve
   first.deriv.sign <- sign(median(first.deriv))
   second.deriv.sign <- sign(median(second.deriv))
+
   # The signs for which to flip the x and y axes
   x.sign <- 1
   y.sign <- 1
@@ -135,7 +133,7 @@ findCutoff <- function(x, y, method="first", frac.of.max.slope=0.5) {
     list(x=NA, y=NA)
   } else {
     # Return cutoff point on curve
-    approx(new.x, zero.deriv, cutoff.x)
+    approx(new.x, new.y, cutoff.x)
   }
 }
 
