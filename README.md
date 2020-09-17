@@ -3,7 +3,7 @@ R package to find cutoff points on knee curves
 
 ## Install
 Open R, install the prerequisite `signal` package, then install this package from GitHub.
-```
+```r
 library(devtools)
 
 install.packages("signal")
@@ -12,7 +12,7 @@ install_github("agentlans/KneeArrower")
 ## Use
 The following code shows example of finding knee points. More options are available.
 Please see package vignette for more details.
-```
+```r
 library(KneeArrower)
 
 # Generate an example knee curve
@@ -48,8 +48,9 @@ The package arbitrarily returns one of the knee points. The others won't appear 
 You may install vignettes by cloning this repository and building the package offline.
 Note: other packages may need to be installed first in order to build the vignettes.
 
-## Author
-Alan Tseng
+## Author, License
 
-## License
-GPL-3
+Copyright 2018, 2019, 2020 Alan Tseng
+
+GNU General Public License v3
+
