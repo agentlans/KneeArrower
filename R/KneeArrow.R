@@ -1,20 +1,114 @@
-#' Finds value of x whose y value is y0
+# KneeArrower: Finds Cutoff Points on Knee Curves
+# Copyright 2018, 2019, 2020 Alan Tseng
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+#' Derivative of a function with respect to x
 #'
-#' @param x x coordinates
-#' @param y y coordinates
-#' @param y0 value for y for which we want corresponding x value
-#' @return value of the x coordinate whose y value is y0.
-#'     If such x isn't in the domain of the function, then this function will return NA.
-#' @importFrom stats approxfun optimize
-findInverse <- function(x, y, y0) {
-  if (y0 < min(y) | max(y) < y0) {
-    return(NA)
-  } else {
-    # Interpolation function
-    f <- approxfun(x, y, rule=1)
-    # Minimize |f(x) - y0| over range of x
-    return(optimize( function(x) abs(f(x) - y0), range(x))$minimum)
+#' @param x x coordinates of points in function's domain
+#' @param y y coordinates of points in function's range
+#' @param m the order of the derivative (0 for y, 1 for y', 2 for y'')
+#' @param n number of points in the domain for interpolation
+#' @return a function representing the mth derivative of y(x) with respect to x
+#' @importFrom stats approxfun approx
+#' @importFrom signal sgolayfilt
+#' @export
+#' @examples
+#' x <- seq(0,5,0.1)
+#' y <- x^2 - 2*x + 3 # So dy/dx = 2x - 2
+#' fp <- derivative(x, y, 1)
+#' fp(2) # 2
+#' fp(5) # 8
+derivative <- function(x, y, m=0, n=50) {
+  xmin <- min(x)
+  xmax <- max(x)
+
+  delta_x <- (xmax-xmin)/(n-1)
+  new_x <- seq(xmin, xmax, length.out=n)
+  xy <- as.data.frame(approx(x, y, new_x))
+
+  new_y <- sgolayfilt(xy$y, m=m, ts=delta_x)
+  approxfun(new_x, new_y)
+}
+
+#' Inverse of a function
+#'
+#' @param f univariate function
+#' @param domain domain of f given as (min, max) interval
+#' @return a function g such that f(x) = y and g(y) = x
+#' @importFrom stats optimize
+#' @export
+#' @examples
+#' expinv <- inverse(exp, c(0,3))
+#' expinv(exp(1))
+inverse <- function(f, domain) {
+  function(y) {
+    # Minimize |f(x)-y|
+    opt <- optimize(function(x) {
+      abs(f(x)-y)
+    }, domain)
+    # If we couldn't optimize it to 0, then no solution
+    if (opt$objective < .Machine$double.eps^0.25) {
+      opt$minimum
+    } else {
+      NA
+    }
   }
+}
+
+#' Finds the point where the derivative is a fraction of the steepest slope
+#'
+#' @param x x coordinates of points around the curve
+#' @param y y coordinates of points around the curve
+#' @param slope_ratio the fraction of the steepest slope that defines knee point
+#' @return (x, y) coordinates of the knee point
+#' @importFrom stats optimize
+findCutoffFirstDerivative <- function(x, y, slope_ratio=0.5) {
+  yf <- derivative(x, y, 0)
+  yp <- derivative(x, y, 1)
+  # Find the steepest slope either up or down
+  xrange <- range(x)
+  max_slope <- optimize(yp, xrange, maximum=TRUE)$objective
+  min_slope <- optimize(yp, xrange)$objective
+  steepest <- if (abs(max_slope) > abs(min_slope)) {
+    max_slope
+  } else {
+    min_slope
+  }
+  # Want to find x that has the required slope
+  slope <- steepest * slope_ratio
+  yi <- inverse(yp, xrange)
+  knee_x <- yi(slope)
+  list(x=knee_x, y=yf(knee_x))
+}
+
+#' Finds the point on the curve that has the maximum curvature
+#'
+#' @param x x coordinates of points around the curve
+#' @param y y coordinates of points around the curve
+#' @return (x, y) coordinates of the point with the greatest curvature
+#' @importFrom stats optimize
+findCutoffCurvature <- function(x, y) {
+  yf <- derivative(x, y, 0)
+  yp <- derivative(x, y, 1)
+  ypp <- derivative(x, y, 2)
+  curvature <- function(x) {
+    abs(ypp(x)/(1+yp(x)^2)^(3/2))
+  }
+  knee_x <- optimize(curvature, range(x), maximum=TRUE)$maximum
+  list(x=knee_x, y=yf(knee_x))
 }
 
 #' Finds cutoff point on knee curve
@@ -35,109 +129,19 @@ findInverse <- function(x, y, y0) {
 #' # Plot knee points calculated using two different methods
 #' points(findCutoff(x,y), col="red", pch=20, cex=3)
 #' points(findCutoff(x,y, method="curvature"), col="blue", pch=20, cex=3)
-#' @importFrom stats approx cor median predict smooth.spline
 #' @export
 findCutoff <- function(x, y, method="first", frac.of.steepest.slope=0.5) {
-  # Test for non-numeric or infinite values
-  is.invalid <- function(x) {
-    any((!is.numeric(x)) | is.infinite(x))
-  }
-  if (is.invalid(x) || is.invalid(y)) {
-    stop("x and y must be numeric and finite. Missing values not allowed.")
-  }
-  if (length(x) != length(y)) {
-    stop("x and y must be of equal length.")
-  }
-
-  # Get value of curve at equally-spaced points
-  new.x <- seq(from=min(x), to=max(x), length.out=length(x))
-  # Use a spline which automatically smooths out noise
-  sp <- smooth.spline(x, y)
-  new.y <- predict(sp, new.x)$y
-
-  # Finds largest odd number below given number
-  largest.odd.num.lte <- function(x) {
-    x.int <- floor(x)
-    if (x.int %% 2 == 0) {
-      x.int - 1
-    } else {
-      x.int
-    }
-  }
-
-  # Use Savitzky-Golay filter to get derivatives
-  smoothen <- function(y, p=p, filt.length=NULL, ...) {
-    # Time scaling factor so that the derivatives are on same scale as original data
-    ts <- (max(new.x) - min(new.x)) / length(new.x)
-    p <- 3 # Degree of polynomial to estimate curve
-    # Set filter length to be fraction of length of data
-    # (must be an odd number)
-    if (is.null(filt.length)) {
-      filt.length <- min(largest.odd.num.lte(length(new.x)), 7)
-    }
-    if (filt.length <= p) {
-      stop("Need more points to find cutoff.")
-    }
-    signal::sgolayfilt(y, p=p, n=filt.length, ts=ts, ...)
-  }
-
-  # Calculate first and second derivatives
-  first.deriv <- smoothen(new.y, m=1)
-  second.deriv <- smoothen(new.y, m=2)
-
-  # Check the signs of the 2 derivatives to see whether to flip the curve
-  # (Pick sign of the most extreme observation)
-  pick.sign <- function(x) {
-    most.extreme <- which(abs(x) == max(abs(x), na.rm=TRUE))[1]
-    sign(x[most.extreme])
-  }
-  first.deriv.sign <- pick.sign(first.deriv)
-  second.deriv.sign <- pick.sign(second.deriv)
-
-  # The signs for which to flip the x and y axes
-  x.sign <- 1
-  y.sign <- 1
-  if ((first.deriv.sign == -1) && (second.deriv.sign == -1)) {
-    x.sign <- -1
-  } else if ((first.deriv.sign == -1) && (second.deriv.sign == 1)) {
-    y.sign <- -1
-  } else if ((first.deriv.sign == 1) && (second.deriv.sign == 1)) {
-    x.sign <- -1
-    y.sign <- -1
-  }
-  # If curve needs flipping, then run same routine on flipped curve then
-  # flip the results back
-  if ((x.sign == -1) || (y.sign == -1)) {
-    results <- findCutoff(x.sign * x, y.sign * y,
-               method=method, frac.of.steepest.slope=frac.of.steepest.slope)
-    return(list(x = x.sign * results$x, y = y.sign * results$y))
-  }
-
-  # Find cutoff point for x depending on method
-  cutoff.x <- NA
+  stopifnot(length(x) == length(y),
+            length(x) >= 4,
+            !(any(is.na(x)) || any(is.na(y)) || any(is.infinite(x)) || any(is.infinite(y))))
   if (method == "first") {
-    if (is.invalid(frac.of.steepest.slope)) {
-      stop("Need to specify fraction of maximum slope.")
-    }
-    if (frac.of.steepest.slope <= 0 || frac.of.steepest.slope > 1) {
-      stop("Fraction of maximum slope must be positive and be less than or equal to 1.")
-    }
-    # Find x where first derivative reaches cutoff
-    slope.cutoff <- frac.of.steepest.slope * max(first.deriv)
-    cutoff.x <- findInverse(new.x, first.deriv, slope.cutoff)
+    stopifnot(0 < frac.of.steepest.slope,
+              frac.of.steepest.slope <= 1)
+    findCutoffFirstDerivative(x, y, frac.of.steepest.slope)
   } else if (method == "curvature") {
-    # Find x where curvature is maximum
-    curvature <- abs(second.deriv) / (1 + first.deriv^2)^(3/2)
-    cutoff.x <- findInverse(new.x, curvature, max(curvature))
+    findCutoffCurvature(x, y)
   } else {
     stop("Method must be either 'first' or 'curvature'.")
-  }
-  if (is.na(cutoff.x)) {
-    warning("Cutoff point is beyond range. Returning NA.")
-    list(x=NA, y=NA)
-  } else {
-    # Return cutoff point on curve
-    approx(new.x, new.y, cutoff.x)
   }
 }
 
