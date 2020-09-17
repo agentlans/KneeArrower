@@ -22,7 +22,7 @@
 #' @param m the order of the derivative (0 for y, 1 for y', 2 for y'')
 #' @param n number of points in the domain for interpolation
 #' @return a function representing the mth derivative of y(x) with respect to x
-#' @importFrom stats approxfun approx
+#' @importFrom stats approxfun approx smooth.spline
 #' @importFrom signal sgolayfilt
 #' @export
 #' @examples
@@ -37,7 +37,10 @@ derivative <- function(x, y, m=0, n=50) {
 
   delta_x <- (xmax-xmin)/(n-1)
   new_x <- seq(xmin, xmax, length.out=n)
-  xy <- as.data.frame(approx(x, y, new_x))
+  xy <- as.data.frame(approx(x, y, new_x, rule=2))
+  # Do another round of smoothing
+  sp <- smooth.spline(xy$x, xy$y)
+  xy$y <- sp$y
 
   new_y <- sgolayfilt(xy$y, m=m, ts=delta_x)
   approxfun(new_x, new_y)
@@ -60,11 +63,12 @@ inverse <- function(f, domain) {
       abs(f(x)-y)
     }, domain)
     # If we couldn't optimize it to 0, then no solution
-    if (opt$objective < .Machine$double.eps^0.25) {
-      opt$minimum
-    } else {
-      NA
-    }
+    # if (opt$objective < .Machine$double.eps^0.1) {
+    #   opt$minimum
+    # } else {
+    #   NA
+    # }
+    opt$minimum
   }
 }
 
@@ -91,7 +95,7 @@ findCutoffFirstDerivative <- function(x, y, slope_ratio=0.5) {
   slope <- steepest * slope_ratio
   yi <- inverse(yp, xrange)
   knee_x <- yi(slope)
-  list(x=knee_x, y=yf(knee_x))
+  list(x=as.numeric(knee_x), y=as.numeric(yf(knee_x)))
 }
 
 #' Finds the point on the curve that has the maximum curvature
@@ -108,7 +112,7 @@ findCutoffCurvature <- function(x, y) {
     abs(ypp(x)/(1+yp(x)^2)^(3/2))
   }
   knee_x <- optimize(curvature, range(x), maximum=TRUE)$maximum
-  list(x=knee_x, y=yf(knee_x))
+  list(x=as.numeric(knee_x), y=as.numeric(yf(knee_x)))
 }
 
 #' Finds cutoff point on knee curve
