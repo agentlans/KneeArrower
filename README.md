@@ -2,7 +2,11 @@
 R package to find cutoff points on knee curves
 
 ## Install
-Open R, install the prerequisite `signal` package, then install this package from GitHub.
+
+- [KneeArrower is available on CRAN](https://cran.r-project.org/web/packages/KneeArrower/index.html). 
+In R, run `install.packages("KneeArrower")` to install.
+
+- Alternatively, to install this package from GitHub, first install the prerequisite `signal` package and then this repository:
 ```r
 library(devtools)
 
@@ -11,7 +15,7 @@ install_github("agentlans/KneeArrower")
 ```
 ## Use
 The following code shows example of finding knee points. More options are available.
-Please see package vignette for more details.
+Please see the package [vignette](https://cran.r-project.org/web/packages/KneeArrower/vignettes/Example.html) for more details.
 ```r
 library(KneeArrower)
 
@@ -26,27 +30,41 @@ findCutoff(x, y)
 # For more information on the options, view the help file for findCutoff
 ?findCutoff
 ```
-## Troubleshooting and Frequently Asked Questions
+## Frequently Asked Questions and Troubleshooting
 
-- **Why doesn't the output point look like a knee point?**
+**How does this work?**
 
-Try plotting x and y coordinates on the same scale.
+1. The points are fitted to a curve using the Savitzky-Golay filter to eliminate bumps and rough edges.
+2. Then the first derivative is calculated from the curve. The "first derivative cutoff method" (default) interpolates a point where the slope is equal to a given value.
+3. The second derivative can also be calculated. In fact, the "maximum curvature method" searches for a knee point by optimizing an expression containing second derivatives.
 
-Also, if you're using the first derivative cutoff method (default), you can adjust the slope to get a higher or lower point on the curve. Please see the vignettes for details.
+**What does this mean?**
 
-- **The output point doesn't match the knee point I found using calculus!**
+- The methods won't work well with data with many humps or extreme discontinuities.
+  - But knee points won't make sense in those cases anyway.
+- The first derivative method should be more robust than anything involving second derivatives
+  - because class *C*<sup>1</sup> curves are a superset of class *C*<sup>2</sup> curves.
+  - However, it doesn't matter much in practice. You can use either method.
 
-The knee points given by the package are only approximate because the derivatives have to be estimated at every point from the data. However, the output should be very close to the actual point.
+**Why doesn't the output point look like a knee point?**
 
-- **What happens if there's more than one knee point?**
+- Try plotting x and y coordinates on the same scale.
 
-The package arbitrarily returns one of the knee points. The others won't appear in the output.
+- Also, if you're using the first derivative cutoff method (default), you can adjust the slope to get a higher or lower point on the curve. Please see the vignettes for details.
 
-- **How come I can't install vignettes?**
+**The output point doesn't match the knee point I found using calculus!**
 
-`devtools` install doesn't install vignettes by default.
-You may install vignettes by cloning this repository and building the package offline.
-Note: other packages may need to be installed first in order to build the vignettes.
+- The knee points given by the package are only approximate because the derivatives have to be estimated at every point from the data. However, the output should be very close to the actual point.
+
+**What happens if there's more than one knee point?**
+
+- The package arbitrarily returns one of the knee points. The others won't appear in the output.
+
+**How come I can't install vignettes?**
+
+- `devtools` install doesn't install vignettes by default.
+- You may install vignettes by cloning this repository and building the package offline.
+- Note: other packages may need to be installed first in order to build the vignettes.
 
 ## Author, License
 
