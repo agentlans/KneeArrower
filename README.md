@@ -1,5 +1,10 @@
 # KneeArrower
-R package to find cutoff points on knee curves
+R package to find cutoff points on knee curves.
+
+Example:
+100 random simulated points (gray) and the knee point (red) found using this package.
+
+![A curve with a knee point](https://github.com/agentlans/KneeArrower/blob/master/Example.png)
 
 ## Install
 
@@ -68,7 +73,6 @@ findCutoff(x, y)
 
 ## Author, License
 
-Copyright 2018, 2019, 2020 Alan Tseng
+Copyright 2018, 2019, 2020-2022 Alan Tseng
 
 GNU General Public License v3
-
